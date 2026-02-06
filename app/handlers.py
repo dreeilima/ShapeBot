@@ -1,4 +1,5 @@
 import logging
+import os
 import io
 import json
 import re
@@ -504,7 +505,8 @@ async def handle_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     image_bio = generate_progress_card(profile)
     
     # Dashboard Button
-    keyboard = [[InlineKeyboardButton("📈 Abrir Dashboard", url=f"http://127.0.0.1:8001/?user_id={user_id}")]]
+    base_url = os.getenv("DASHBOARD_URL", "http://127.0.0.1:8001").rstrip("/")
+    keyboard = [[InlineKeyboardButton("📈 Abrir Dashboard", url=f"{base_url}/?user_id={user_id}")]]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     await update.message.reply_photo(photo=image_bio, caption="📊 *Seu Progresso*", reply_markup=reply_markup, parse_mode='Markdown')

@@ -13,8 +13,9 @@ Siga estes passos para colocar seu bot em produção.
 4.  **Builder**: Selecione **"Docker"**. Ele vai ler automaticamente o arquivo `Dockerfile` que criamos.
 5.  **Environment Variables**: Clique em "Add Variable" e adicione:
     - `TELEGRAM_TOKEN`: (Seu token do BotFather)
-    - `GEMINI_API_KEY`: (Sua chave da Google AI)
+    - `GEMINI_API_KEY`: (Sua nova chave da Google AI)
     - `DATABASE_URL`: URL do banco PostgreSQL (Veja passo 3 abaixo).
+    - `DASHBOARD_URL`: A URL pública do seu app no Koyeb (Ex: `https://seu-app.koyeb.app`).
 6.  **Expose Port**: Defina como **8001** (ou deixe em branco se ele detectar o `EXPOSE` do Docker).
 
 ## 3. Banco de Dados (PostgreSQL)
