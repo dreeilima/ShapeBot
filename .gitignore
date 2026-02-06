@@ -1,0 +1,24 @@
+# Credentials
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+.venv/
+
+# Database / Local Labs
+*.db
+*.sqlite
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project Specific
+logo.png
+*.log
+app/web/favicon.png
+node_modules/
