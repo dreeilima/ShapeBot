@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#121212">
+    <title>ShapeBot Dashboard</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --accent-green: #4CAF50;
+            --accent-blue: #2ea6ff;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            padding: 20px;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            width: 100%;
+            max-width: 600px;
+            margin-bottom: 25px;
+        }
+        .stat-card {
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid #333;
+        }
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 5px 0;
+            display: block;
+        }
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        h2 { 
+            margin-bottom: 20px; 
+            font-weight: 600; 
+            letter-spacing: -0.5px;
+        }
+        
+        .chart-container {
+            width: 100%;
+            max-width: 600px;
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #333;
+            box-sizing: border-box; /* Fix padding overflow */
+        }
+        
+        .chart-title {
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn {
+            background: var(--accent-blue);
+            color: white;
+            border: none;
+            padding: 14px 20px;
+            border-radius: 12px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            max-width: 300px;
+            font-weight: 600;
+            margin-top: 10px;
+            transition: opacity 0.2s;
+        }
+        .btn:active {
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>📊 Analytics</h2>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <span class="stat-label">Peso</span>
+            <span class="stat-value" id="val-weight">--</span>
+            <span class="stat-label">kg</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">Meta</span>
+            <span class="stat-value" id="val-target">--</span>
+            <span class="stat-label">kg</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">Água</span>
+            <span class="stat-value" id="val-water" style="color: var(--accent-blue)">--</span>
+            <span class="stat-label">ml</span>
+        </div>
+    </div>
+
+    <div class="chart-container">
+        <div class="chart-title">⚖️ Evolução de Peso</div>
+        <canvas id="weightChart"></canvas>
+    </div>
+
+    <div class="chart-container">
+        <div class="chart-title">💧 Histórico de Água</div>
+        <canvas id="waterChart"></canvas>
+    </div>
+
+    <button onclick="closeApp()" class="btn">Fechar</button>
+
+    <script>
+        Telegram.WebApp.ready();
+        Telegram.WebApp.expand();
+
+        function closeApp() {
+            // Tenta fechar via Telegram SDK
+            if (Telegram.WebApp.initDataUnsafe && Object.keys(Telegram.WebApp.initDataUnsafe).length > 0) {
+                 Telegram.WebApp.close();
+            } else {
+                // Fallback para navegador (Localhost)
+                window.close();
+                // Se o navegador bloquear o close(), avisa o usuário
+                setTimeout(() => {
+                    alert("Como você está no navegador, feche a aba manualmente.");
+                }, 300);
+            }
+        }
+
+        // Config Chart.js Defaults
+        Chart.defaults.font.family = "'Inter', sans-serif";
+        Chart.defaults.color = '#aaaaaa';
+        Chart.defaults.scale.grid.color = '#333333';
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('user_id');
+
+        if (userId) fetchData(userId);
+
+        async function fetchData(id) {
+            try {
+                const response = await fetch(`/api/history/${id}`);
+                const data = await response.json();
+
+                if (data.error) return;
+
+                // Update Stats
+                document.getElementById('val-weight').textContent = data.stats.current_weight;
+                document.getElementById('val-target').textContent = data.stats.target_weight;
+                document.getElementById('val-water').textContent = parseInt(data.stats.water_today);
+
+                renderWeightChart(data.weight_labels, data.weight_values);
+                renderWaterChart(data.water_labels, data.water_values);
+
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        function renderWeightChart(labels, values) {
+            const ctx = document.getElementById('weightChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Peso',
+                        data: values,
+                        borderColor: '#4CAF50',
+                        backgroundColor: '#4CAF50', // Solid (Point)
+                        pointBackgroundColor: '#4CAF50',
+                        borderWidth: 3,
+                        tension: 0.1,
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: false },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        function renderWaterChart(labels, values) {
+            const ctx = document.getElementById('waterChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Água',
+                        data: values,
+                        backgroundColor: '#2ea6ff', // Solid color
+                        borderRadius: 6,
+                        barThickness: 25
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>

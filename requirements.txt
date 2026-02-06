@@ -1,0 +1,8 @@
+python-telegram-bot>=21.9
+google-generativeai
+psycopg2-binary
+python-dotenv
+apscheduler
+Pillow
+fastapi
+uvicorn
